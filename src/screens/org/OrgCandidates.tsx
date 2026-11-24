@@ -1,0 +1,27 @@
+import { useMemo, useState } from "react";
+import { Link, useSearchParams } from "react-router-dom";
+import { assessments, band, branches, candidates, type Candidate, type CandidateStatus } from "../../data";
+import { Avatar, Button, DecisionTag, PageHeader, Panel, PanelHeader, StatusTag, useToast } from "../../components/ui";
+
+const otherCandidates: (Candidate & {branchId:string})[]=[
+  {id:"r1",name:"Aarav Malhotra",initials:"AM",email:"aarav.m@gmail.com",phone:"+91 98100 10001",experience:"5 years",assessmentId:"a1",status:"Report ready",score:79,decision:undefined,invitedOn:"10 Nov",interviewedOn:"Today",hue:0,branchId:"b2"},
+  {id:"r2",name:"Shalini Rao",initials:"SR",email:"shalini.rao@gmail.com",phone:"+91 98100 10002",experience:"7 years",assessmentId:"a1",status:"Reviewed",score:74,decision:"Shortlist",invitedOn:"9 Nov",interviewedOn:"Yesterday",hue:5,branchId:"b2"},
+  {id:"r3",name:"Kabir Sethi",initials:"KS",email:"kabir.sethi@gmail.com",phone:"+91 98100 10003",experience:"3 years",assessmentId:"a1",status:"Completed",invitedOn:"11 Nov",interviewedOn:"Today",hue:3,branchId:"b3"},
+  {id:"s1",name:"Rhea Menon",initials:"RM",email:"rhea.menon@gmail.com",phone:"+91 98100 10004",experience:"4 years",assessmentId:"a1",status:"Report ready",score:68,invitedOn:"8 Nov",interviewedOn:"Yesterday",hue:2,branchId:"b3"},
+];
+type CandidateRow=Candidate & {branchId:string};
+export default function OrgCandidates(){
+  const toast=useToast();
+  const [params]=useSearchParams();
+  const [branchFilter,setBranchFilter]=useState(params.get("branch")??"All branches");
+  const [subject,setSubject]=useState("All subjects");
+  const [grade,setGrade]=useState("All grades");
+  const [status,setStatus]=useState("All statuses");
+  const all:CandidateRow[]=[...candidates.map((c)=>({...c,branchId:"b1"})),...otherCandidates];
+  const filtered=useMemo(()=>all.filter((c)=>{
+    const a=assessments.find((item)=>item.id===c.assessmentId)!;
+    return (branchFilter==="All branches"||c.branchId===branchFilter)&&(subject==="All subjects"||a.subject===subject)&&(grade==="All grades"||a.grade===grade)&&(status==="All statuses"||c.status===status);
+  }),[all,branchFilter,subject,grade,status]);
+  const selectCls="h-9 rounded-control border border-border-strong bg-surface px-3 text-caption text-ink-2";
+  return <div className="mx-auto max-w-[1280px]"><PageHeader title="Candidates and reports" meta="Candidate interviews across all branches"/><Panel className="overflow-hidden"><PanelHeader title="Candidates" count={filtered.length} action={<div className="flex flex-wrap items-center gap-2"><select aria-label="Filter by branch" className={selectCls} value={branchFilter} onChange={(e)=>setBranchFilter(e.target.value)}><option>All branches</option>{branches.map((b)=><option key={b.id} value={b.id}>{b.name}</option>)}</select><select aria-label="Filter by subject" className={selectCls} value={subject} onChange={(e)=>setSubject(e.target.value)}><option>All subjects</option><option>Mathematics</option></select><select aria-label="Filter by grade" className={selectCls} value={grade} onChange={(e)=>setGrade(e.target.value)}><option>All grades</option><option>Grade 8</option><option>Grade 7–8</option></select><select aria-label="Filter by status" className={selectCls} value={status} onChange={(e)=>setStatus(e.target.value)}><option>All statuses</option>{["Invited","Started","Completed","Report ready","Reviewed","Decided"].map((s)=><option key={s}>{s}</option>)}</select></div>}/><div className="overflow-x-auto"><table className="w-full min-w-[970px] text-left"><thead><tr className="border-b border-border text-xs font-semibold text-ink-3"><th className="px-5 py-2">Candidate</th><th className="px-3 py-2">Branch</th><th className="px-3 py-2">Assessment</th><th className="px-3 py-2">Status</th><th className="px-3 py-2">Score</th><th className="px-3 py-2">Decision</th><th className="px-5 py-2"/></tr></thead><tbody>{filtered.map((c)=>{const a=assessments.find((item)=>item.id===c.assessmentId)!;const branch=branches.find((b)=>b.id===c.branchId)!;return <tr key={c.id} className="border-b border-border last:border-0"><td className="px-5 py-3"><div className="flex items-center gap-3"><Avatar initials={c.initials} hue={c.hue} size="sm"/><span><span className="block text-caption font-semibold text-ink">{c.name}</span><span className="block text-xs text-ink-3">{c.experience} experience</span></span></div></td><td className="px-3 py-3 text-caption text-ink-2">{branch.name}</td><td className="px-3 py-3 text-caption text-ink-2">{a.position}</td><td className="px-3 py-3"><StatusTag status={c.status as CandidateStatus}/></td><td className="px-3 py-3 text-caption tabular-nums text-ink-2">{c.score!==undefined?<><span className="font-bold text-ink">{c.score}</span><span className="text-ink-3"> · {band(c.score)}</span></>:"—"}</td><td className="px-3 py-3">{c.decision?<DecisionTag decision={c.decision}/>:<span className="text-caption text-ink-3">—</span>}</td><td className="px-5 py-3 text-right">{c.branchId==="b1"?<Link to={`/reports/${c.id}`} className="text-caption font-semibold text-primary hover:underline">Open report</Link>:<Button size="sm" onClick={()=>toast("Opens the branch report")}>Open report</Button>}</td></tr>})}</tbody></table>{filtered.length===0&&<div className="px-6 py-12 text-center text-caption text-ink-3">No candidates match these filters.</div>}</div></Panel></div>;
+}
